@@ -54,12 +54,13 @@ myDict = {'Blue': (550, 1000, 1100),
 for color_val, x_coord in myDict.items():
     #index the value toupke so that you can go through each coordinate and pplot it one by one
     for i, coord in enumerate(x_coord):
-
         # print(coord)
         # print(f"{color_val}: {x_coord[i]}")
+        #set the line width and stuff which is consistent across every line
         context.set_line_width(5)
         context.move_to(x_coord[i],150)        #(x,y) START POINT
         context.line_to(x_coord[i], 50) 
+        #change the color depending on the key value 
         if color_val == 'Red':
             context.set_source_rgb(255, 0, 0)
             print("PURPLE")
