@@ -8,13 +8,11 @@ def get_args():
     parser = argparse.ArgumentParser(description="test")
     parser.add_argument("-m", help="motif list file") #type: str
     parser.add_argument("-f", help="fasta file") #type: str
-    # parser.add_argument("-o", help="output fig prefex") #type: str
     return parser.parse_args()
 
 args = get_args()
 motif = args.m 
 fasta = args.f 
-# out_pic = args.o
 
 ####################
 # GLOBAL VARIABLES #
@@ -27,15 +25,15 @@ feature_height = 25
 #color list for drawing motifs: 
 # list of 5 tupols containg RGB values divided 255
 #pink, purple, light blue, green, orange
-COLOT_LIST = [(255/255, 96/255, 208/255),
+COLOR_LIST = [(255/255, 96/255, 208/255),
               (160/255, 32/255, 255/255),
               (80/255, 208/255, 255/255),
               (96/255, 255/255, 128/255),
               (255/255, 106/255, 16/255)]
 #motif variations dict key: given motif, value: regex motif
-motif_dict = {}
+MOTIF_DICT = {}
 #key: given letter value: regex possible letters for motifs
-iupac ={
+IUPAC_DICT ={
     "U":"[TU]",
     "W":"[ATU]",
     "S":"[CG]",
@@ -62,13 +60,18 @@ class Motif:
         self.color = color
     #draw motif
     def draw(self, context):
-        context.set_source_rgb(self.color[0], self.color[1], self.color[2])        #set color to black
+        context.set_source_rgb(self.color[0], self.color[1], self.color[2])       #set color to color list
         y = (gene_num*100) + 137.5
         x = self.start + 50
         length = self.length
         height = feature_height
         context.rectangle(x,y,length,height)
         context.fill()
+    
+    # def legend(self, context):
+    #     context.set_source_rgb = (Motif.draw)
+
+
 
 class Gene: 
     def __init__(self, length, gene_name, gene_number):
@@ -117,11 +120,10 @@ class Exon:
 #def find and replace the regex expressions of the
 def reg_ex_replace(motif) -> str: 
     '''Takes in motif and outputs seq containing possible variations in regex'''
-    # print(motif)
     motif = motif.upper()
     for char in motif: 
-        if char in iupac:
-            motif = motif.replace(char, iupac[char])
+        if char in IUPAC_DICT:
+            motif = motif.replace(char, IUPAC_DICT[char])
     return(motif)
 
 #function to find the exon start and length
@@ -146,12 +148,9 @@ with (open(fasta, "r") as fasta_file,
     #OPEN MOTIF FILE AND POP MOTIF DICT
     for motif in motif_file: 
         motif = motif.strip()
-        # print(motif)
         new_motif = reg_ex_replace(motif)
-        # print(new_motif)
-        motif_dict[motif] = new_motif
-    # print(motif_dict)
-    #
+        MOTIF_DICT[motif] = new_motif
+
     for line in fasta_file: 
         #set the header and seq variables equal to the header and seq of that record 
         if line.startswith(">"):
@@ -171,7 +170,6 @@ for header in fasta_dict:
     if len(fasta_dict[header]) > length:
         length = len(fasta_dict[header]) 
 length += 250
-# print(f"the length of the canvaas is:{length}\n the height is {height}")
 
 #set the coordinates of the canvas
 surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, length, height)
@@ -179,16 +177,6 @@ surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, length, height)
 context = cairo.Context(surface)
 context.set_source_rgb(1,1,1)
 context.paint()
-
-# TITLE: 
-title_height = 25
-context.set_source_rgb(0,0,0)
-context.select_font_face("Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-context.set_font_size(20)
-context.move_to(350, title_height)
-context.show_text("Motif Locations Within 4 Genes")
-
-#LEGEND:
 
 
 ################################
@@ -215,25 +203,42 @@ for i, header in enumerate(fasta_dict):
     #ITERATE THROUGH FASTA SEQ TO FIND MOTIFS: 
     #MAKE SEQ ALL UPPER CASE:
     seq = fasta_dict[header].upper()
-    # print(seq)
-    for j, motif in enumerate(motif_dict):
-        # print(motif_dict[motif])
-        matches = re.finditer(motif_dict[motif],seq)
+    for j, motif in enumerate(MOTIF_DICT):
+        matches = re.finditer(MOTIF_DICT[motif],seq)
         for match in matches:
-            # print(match.start(), match.group())
-            # motif_name = motif
             start = match.start()
             length = len(match.group())
             gene_number = i
-            motif = Motif(start, length, gene_number, COLOT_LIST[j])
+            motif = Motif(start, length, gene_number, COLOR_LIST[j])
             motif.draw(context)
-            # print(motif)
 
+#########################
+# CREATE TITLE + LEGEND #
+#########################
 
+# TITLE: 
+title_height = 25
+context.set_source_rgb(0,0,0)
+context.select_font_face("Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+context.set_font_size(20)
+context.move_to(350, title_height)
+context.show_text("Motif Locations Within 4 Genes")
 
-
-
-#add legend and title 
+#LEGEND:
+# for motif in motif_dict:
+for j, motif in enumerate(MOTIF_DICT):
+    context.set_source_rgb(COLOR_LIST[j][0], COLOR_LIST[j][1], COLOR_LIST[j][2])
+    y = j*30 + 75
+    x = 950
+    length = 25
+    height = feature_height
+    context.rectangle(x,y,length,height)
+    context.fill()
+    title_height = y+10
+    context.select_font_face("Arial", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+    context.set_font_size(15)
+    context.move_to(820, title_height)
+    context.show_text(motif)
 
 #save to png 
 name = fasta.split(".")
